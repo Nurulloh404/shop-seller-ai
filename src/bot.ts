@@ -17,7 +17,7 @@ let cached: { token: string; bot: Bot; ready: Promise<void> } | null = null;
 /** Isolate ichida bitta Bot nusxasi; getMe faqat bir marta chaqiriladi */
 function getBot(env: Env): { bot: Bot; ready: Promise<void> } {
   if (cached && cached.token === env.TELEGRAM_BOT_TOKEN) return cached;
-  const bot = new Bot(env.TELEGRAM_BOT_TOKEN);
+  const bot = new Bot(env.TELEGRAM_BOT_TOKEN.trim());
   registerHandlers(bot, env);
   cached = { token: env.TELEGRAM_BOT_TOKEN, bot, ready: bot.init() };
   cached.ready.catch(() => (cached = null));

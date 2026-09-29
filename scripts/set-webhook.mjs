@@ -1,11 +1,11 @@
-// Foydalanish: npm run set-webhook -- https://dokon-bot.<subdomain>.workers.dev
+// Foydalanish: npm run set-webhook -- https://shop-seller-ai.<subdomain>.workers.dev
 // .dev.vars faylidan TELEGRAM_BOT_TOKEN va TELEGRAM_WEBHOOK_SECRET o'qiladi
 // (Cloudflare'ga `wrangler secret put` bilan qo'ygan qiymatlaringiz bilan bir xil bo'lsin).
 import { readFileSync } from "node:fs";
 
 const base = (process.argv[2] || "").replace(/\/+$/, "");
 if (!/^https:\/\//.test(base)) {
-  console.error("Worker manzilini bering: npm run set-webhook -- https://dokon-bot.xxx.workers.dev");
+  console.error("Worker manzilini bering: npm run set-webhook -- https://shop-seller-ai.xxx.workers.dev");
   process.exit(1);
 }
 

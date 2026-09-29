@@ -57,13 +57,13 @@ npx wrangler secret put SELLER_CHAT_ID      # hozircha 0 kiriting, 6-qadamda alm
 npm run deploy
 ```
 
-Oxirida `https://dokon-bot.<sizning-subdomain>.workers.dev` manzili chiqadi. Brauzerda ochsangiz "ishlayapti ✅" yozuvi ko'rinadi.
+Oxirida `https://shop-seller-ai.<sizning-subdomain>.workers.dev` manzili chiqadi. Brauzerda ochsangiz "ishlayapti ✅" yozuvi ko'rinadi.
 
 ### 5. Webhook
 
 ```bash
 cp .dev.vars.example .dev.vars   # ichiga token va webhook sirini yozing (3-qadamdagi bilan bir xil)
-npm run set-webhook -- https://dokon-bot.<sizning-subdomain>.workers.dev
+npm run set-webhook -- https://shop-seller-ai.<sizning-subdomain>.workers.dev
 ```
 
 ### 6. Sotuvchini ulash
