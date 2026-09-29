@@ -1,0 +1,26 @@
+name = "dokon-bot"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dokon-bot"
+database_id = "84b4059b-28a0-43a5-a059-11a042bd998a"
+migrations_dir = "migrations"
+
+[triggers]
+# Har 10 daqiqada: eslatmalar, tasdiq kutayotganlar, eskirgan savatlar
+# Har kuni 01:00 UTC (06:00 Toshkent): kunlik limitni tiklash + kechagi hisobot
+crons = ["*/10 * * * *", "0 1 * * *"]
+
+[vars]
+# Tool calling'ni qo'llaydigan istalgan OpenRouter modeli
+OPENROUTER_MODEL = "openai/gpt-4o-mini"
+DAILY_LIMIT = "5"
+FREE_DELIVERY_FROM = "150000"
+DELIVERY_PRICE = "15000"
+SHOP_NAME = "Do'kon"
+
+# Sirlar (wrangler secret put bilan qo'yiladi, bu yerga YOZILMAYDI):
+# TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET, OPENROUTER_API_KEY, SELLER_CHAT_ID

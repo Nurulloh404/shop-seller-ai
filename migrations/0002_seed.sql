@@ -1,0 +1,20 @@
+-- Namuna tovarlar (mock data). Narxlar taxminiy.
+INSERT OR REPLACE INTO products (id, name, aliases, price, category, alt_product_id) VALUES
+('ariel', 'Ariel poroshok 3 kg', '["ariel","ariyel","ариэль","ариел","poroshok","kukun","порошок"]', 98000, 'poroshok', 'persil'),
+('persil', 'Persil poroshok 3 kg', '["persil","persel","персил"]', 92000, 'poroshok', 'ariel'),
+('tide', 'Tide poroshok 3 kg', '["tide","tayd","тайд"]', 86000, 'poroshok', 'ariel'),
+('head', 'Head & Shoulders 400 ml', '["head shoulders","head","hed","xed","хеден","хед","head&shoulders","shampun","shampon","шампунь"]', 54000, 'shampun', 'clear'),
+('clear', 'Clear shampun 400 ml', '["clear","klir","клир"]', 49000, 'shampun', 'head'),
+('pantene', 'Pantene shampun 400 ml', '["pantene","panten","пантин","пантене"]', 52000, 'shampun', 'garnier'),
+('garnier', 'Garnier Fructis 400 ml', '["garnier","garner","garnyer","fructis","fruktis","гарньер","фруктис"]', 47000, 'shampun', 'pantene'),
+('rexona', 'Rexona dezodorant', '["rexona","reksona","рексона","dezodorant","dezik","дезодорант"]', 38000, 'dezodorant', 'nivea'),
+('nivea', 'Nivea dezodorant', '["nivea","niveya","нивея","нивеа"]', 42000, 'dezodorant', 'rexona'),
+('palmolive', 'Palmolive dush geli', '["palmolive","palmoliv","палмолив","dush geli","gel","гель"]', 33000, 'gel', NULL),
+('fairy', 'Fairy 500 ml', '["fairy","feri","фейри","ferri","idish yuvish","idish"]', 24000, 'idish', 'cif'),
+('domestos', 'Domestos 1 l', '["domestos","domestas","доместос","unitaz","xlor"]', 32000, 'tozalash', 'cif'),
+('cif', 'Cif krem 500 ml', '["cif","sif","сиф","cif krem"]', 29000, 'tozalash', 'domestos'),
+('lenor', 'Lenor konditsioner 1 l', '["lenor","ленор","konditsioner","kondisioner","yumshatuvchi","кондиционер"]', 45000, 'kir yuvish', NULL),
+('colgate', 'Colgate tish pastasi 100 ml', '["colgate","kolgeyt","kolgate","колгейт","tish pastasi","pasta","паста"]', 18000, 'gigiyena', NULL),
+('dove', 'Dove sovun 90 g', '["dove","dav","дав","sovun","мыло"]', 14000, 'sovun', 'safeguard'),
+('safeguard', 'Safeguard sovun 90 g', '["safeguard","seyfgard","сейфгард"]', 11000, 'sovun', 'dove'),
+('gillette', 'Gillette Blue II, 5 dona', '["gillette","gilette","jilet","gilet","жиллет","ustara","britva","бритва","станок"]', 36000, 'ustara', NULL);

@@ -1,0 +1,6 @@
+# Nusxa oling: cp .dev.vars.example .dev.vars
+# Bu fayl lokal test (wrangler dev) va set-webhook skripti uchun. Git'ga YUKLANMAYDI.
+TELEGRAM_BOT_TOKEN=123456:ABC-botfather-bergan-token
+TELEGRAM_WEBHOOK_SECRET=uzun-tasodifiy-satr-harf-va-raqamlar
+OPENROUTER_API_KEY=sk-or-v1-...
+SELLER_CHAT_ID=123456789

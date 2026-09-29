@@ -1,0 +1,386 @@
+<title>AI Sotuvchi Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: ikki panelli jonli demo (mijoz chati | sotuvchi paneli), ostida hisob-kitob va ishga tushirish rejasi */
+:root{
+  --bg:#f3f6f7; --surface:#ffffff; --surface-2:#e8eff1; --fg:#14262c; --muted:#5a7078;
+  --line:#d3dfe2; --accent:#0f7c8c; --accent-soft:#d6eef1; --bubble-me:#0f7c8c; --bubble-me-fg:#ffffff;
+  --ok:#2e8a4f; --ok-soft:#dcf1e3; --warn:#b26a00; --warn-soft:#fbecd2; --bad:#b8392f; --bad-soft:#f8dcd9;
+  --display:"Unbounded","Onest",system-ui,sans-serif; --body:"Onest",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e171a; --surface:#152227; --surface-2:#1c2d33; --fg:#e3eef0; --muted:#8fa6ad;
+  --line:#2a3f46; --accent:#4cc3d3; --accent-soft:#163a41; --bubble-me:#1f7482; --bubble-me-fg:#f1fbfc;
+  --ok:#5cc983; --ok-soft:#173526; --warn:#e5a54a; --warn-soft:#3a2b12; --bad:#ec7a70; --bad-soft:#3d1c19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e171a; --surface:#152227; --surface-2:#1c2d33; --fg:#e3eef0; --muted:#8fa6ad;
+  --line:#2a3f46; --accent:#4cc3d3; --accent-soft:#163a41; --bubble-me:#1f7482; --bubble-me-fg:#f1fbfc;
+  --ok:#5cc983; --ok-soft:#173526; --warn:#e5a54a; --warn-soft:#3a2b12; --bad:#ec7a70; --bad-soft:#3d1c19; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:28px 56px;display:flex;flex-direction:column;gap:40px}
+h1,h2{font-family:var(--display);font-weight:700;text-wrap:balance;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(24px,4vw,36px);line-height:1.15}
+h2{font-size:clamp(19px,2.6vw,24px)}
+h3{margin:0;font-size:15px;font-weight:600}
+p{margin:0}
+.lead{color:var(--muted);max-width:66ch;margin-top:10px}
+.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:600;margin-bottom:8px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:7px 12px}
+button:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--bubble-me-fg);font-weight:600}
+.btn-primary:hover{filter:brightness(1.08)}
+
+/* Demo grid */
+.demo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:20px;align-items:start}
+@media (max-width:860px){.demo{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-width:0}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--surface-2);flex-wrap:wrap}
+.panel-head .who{display:flex;align-items:center;gap:10px}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--accent);color:var(--bubble-me-fg);display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+.status{font-size:12px;color:var(--ok)}
+
+.chat{height:440px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+.msg{max-width:84%;padding:9px 12px;border-radius:14px;white-space:pre-line;font-size:14.5px}
+.msg.bot{background:var(--surface);border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:4px}
+.msg.me{background:var(--bubble-me);color:var(--bubble-me-fg);align-self:flex-end;border-bottom-right-radius:4px}
+.msg.sys{align-self:center;font-size:12px;color:var(--muted);background:transparent;padding:2px 8px}
+.msg .t{display:block;font-size:11px;opacity:.6;margin-top:3px;text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-top:1px solid var(--line)}
+.chips button{font-size:13px;padding:5px 10px;border-radius:999px;background:var(--accent-soft);border-color:transparent;color:var(--fg)}
+.composer{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line)}
+.composer input{flex:1;min-width:0;font:inherit;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+.cartbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-top:1px solid var(--line);background:var(--surface-2);flex-wrap:wrap;font-size:14px}
+
+/* Seller */
+.seller-body{padding:16px;display:flex;flex-direction:column;gap:18px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.stat{background:var(--surface-2);border-radius:10px;padding:10px 12px}
+.stat .v{font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums}
+.stat .l{font-size:12px;color:var(--muted)}
+.tbl-wrap{overflow:auto;max-height:430px;border:1px solid var(--line);border-radius:10px}
+th{position:sticky;top:0;background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.r,th.r{text-align:right}
+.pill{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;font-weight:600;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.bad{background:var(--bad-soft);color:var(--bad)}
+.dots{display:inline-flex;gap:3px;vertical-align:middle}
+.dots i{width:8px;height:8px;border-radius:2px;background:var(--line)}
+.dots i.on{background:var(--accent)}
+.toggle{font-size:12.5px;padding:4px 9px}
+.queue{display:flex;flex-direction:column;gap:8px}
+.qitem{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:10px;background:var(--warn-soft);flex-wrap:wrap}
+.qitem .acts{display:flex;gap:6px}
+.empty{font-size:13.5px;color:var(--muted);padding:10px 12px;border:1px dashed var(--line);border-radius:10px}
+.remind{display:flex;flex-direction:column;gap:8px}
+.ritem{padding:10px 12px;border-radius:10px;background:var(--surface-2);font-size:14px}
+.ritem b{font-weight:600}
+.note{font-size:13px;color:var(--muted)}
+
+/* Calc */
+.calc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:20px}
+@media (max-width:860px){.calc{grid-template-columns:minmax(0,1fr)}}
+.inputs{display:flex;flex-direction:column;gap:14px;padding:18px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:13.5px;font-weight:500;display:flex;justify-content:space-between;gap:8px}
+.field input[type=number]{font:inherit;font-family:var(--mono);padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);width:100%}
+.field input[type=range]{width:100%;accent-color:var(--accent)}
+.results{padding:18px;display:flex;flex-direction:column;gap:16px}
+.bars{display:flex;flex-direction:column;gap:12px}
+.bar-row{display:grid;grid-template-columns:110px minmax(0,1fr) 60px;gap:10px;align-items:center;font-size:13.5px}
+.bar{height:26px;border-radius:6px;background:var(--surface-2);overflow:hidden}
+.bar span{display:block;height:100%;border-radius:6px;transition:width .4s ease}
+.bar .lost{background:var(--bad-soft)} .bar .now{background:var(--muted)} .bar .ai{background:var(--accent)}
+.big{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.big .stat .v{font-size:20px}
+.big .stat.hi{background:var(--accent-soft)}
+
+/* Plan */
+.plan{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.step .n{font-family:var(--mono);font-size:12px;color:var(--accent)}
+.step ul{margin:0;padding-left:18px;color:var(--muted);font-size:14px;display:flex;flex-direction:column;gap:4px}
+.idea{background:var(--accent-soft);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:8px;max-width:820px}
+@media (prefers-reduced-motion:reduce){.bar span{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Maishiy kimyo va kosmetika do'koni uchun</div>
+    <h1>AI sotuvchi: ombor tizimisiz ishlaydigan Telegram yordamchi</h1>
+    <p class="lead">Chapda mijoz yozadi, AI darhol javob beradi. O'ngda sotuvchi ko'radigan panel. Hech qanday tovar kiritish yo'q: har bir tovarga kunlik <b>5 donalik limit</b> beriladi. Limit ichida AI o'zi sotadi, undan oshsa sotuvchidan bir bosishda tasdiq so'raydi.</p>
+  </header>
+
+  <section class="demo" aria-label="Jonli demo">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="who"><div class="avatar">AI</div><div><h3>Do'kon yordamchisi</h3><div class="status">onlayn · 10 soniyada javob</div></div></div>
+        <button id="resetBtn" class="toggle">Qaytadan</button>
+      </div>
+      <div class="chat" id="chat" aria-live="polite"></div>
+      <div class="chips" id="chips"></div>
+      <form class="composer" id="composer">
+        <input id="msgInput" autocomplete="off" placeholder="Mijoz sifatida yozing: masalan, ariel bormi">
+        <button class="btn-primary" type="submit">Yuborish</button>
+      </form>
+      <div class="cartbar">
+        <span>Savat: <b class="num" id="cartTotal">0</b> so'm</span>
+        <span style="display:flex;gap:6px;flex-wrap:wrap">
+          <button id="leaveBtn" class="toggle">Mijoz ketib qoldi</button>
+          <button id="checkoutBtn" class="toggle btn-primary">Rasmiylashtirish</button>
+        </span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>Sotuvchi paneli</h3><span class="note">telefonda ochiladi</span></div>
+      <div class="seller-body">
+        <div class="stats">
+          <div class="stat"><div class="v" id="stChats">0</div><div class="l">bugun yozdi</div></div>
+          <div class="stat"><div class="v" id="stSold">0</div><div class="l">sotib oldi</div></div>
+          <div class="stat"><div class="v" id="stRev">0</div><div class="l">tushum, so'm</div></div>
+        </div>
+
+        <div>
+          <h3 style="margin-bottom:8px">Tovarlar va kunlik limit</h3>
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Tovar</th><th class="r">Narx</th><th>Limit</th><th></th></tr></thead>
+            <tbody id="prodBody"></tbody>
+          </table></div>
+          <p class="note" style="margin-top:8px">Sotuvchi faqat bitta ish qiladi: tovar tugasa "Tugadi" ni bosadi. Qolganini AI o'zi yuritadi. Limit har kuni ertalab 5 ga qaytadi.</p>
+        </div>
+
+        <div>
+          <h3 style="margin-bottom:8px">Tasdiq kutayotganlar</h3>
+          <div class="queue" id="queue"></div>
+        </div>
+
+        <div>
+          <h3 style="margin-bottom:8px">Ertangi eslatmalar</h3>
+          <div class="remind" id="remind"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Hisob-kitob</div>
+    <h2>Reklamaga pul qo'shmasdan qancha sotuv qaytadi</h2>
+    <p class="lead">Boshlang'ich raqamlar: kuniga 40 kishi yozadi, 10 tasi sotib oladi. O'rtacha chek va maqsadli konversiyani o'zgartirib ko'ring.</p>
+    <div class="calc" style="margin-top:18px">
+      <div class="panel inputs">
+        <div class="field"><label for="cWrite">Kuniga yozganlar</label><input id="cWrite" type="number" min="1" value="40"></div>
+        <div class="field"><label for="cBuy">Hozir sotib olayotganlar</label><input id="cBuy" type="number" min="0" value="10"></div>
+        <div class="field"><label for="cCheck">O'rtacha chek, so'm</label><input id="cCheck" type="number" min="0" step="5000" value="85000"></div>
+        <div class="field"><label for="cConv">AI bilan konversiya <span class="num" id="cConvV">40%</span></label><input id="cConv" type="range" min="25" max="70" value="40"></div>
+        <div class="field"><label for="cRep">Qayta xarid qiladiganlar (eslatma orqali) <span class="num" id="cRepV">20%</span></label><input id="cRep" type="range" min="0" max="50" value="20"></div>
+        <p class="note">Chek va foizlar taxminiy. Do'kondan bir haftalik haqiqiy raqamlarni olib qo'ying.</p>
+      </div>
+      <div class="panel results">
+        <div class="bars">
+          <div class="bar-row"><span>Hozir</span><div class="bar"><span class="now" id="bNow"></span></div><b class="num" id="bNowV"></b></div>
+          <div class="bar-row"><span>AI bilan</span><div class="bar"><span class="ai" id="bAi"></span></div><b class="num" id="bAiV"></b></div>
+          <div class="bar-row"><span>Yo'qotilyapti</span><div class="bar"><span class="lost" id="bLost"></span></div><b class="num" id="bLostV"></b></div>
+        </div>
+        <div class="big">
+          <div class="stat"><div class="v" id="rDay"></div><div class="l">qo'shimcha sotuv kuniga</div></div>
+          <div class="stat"><div class="v" id="rRep"></div><div class="l">eslatmadan qaytgan xarid, oyiga</div></div>
+          <div class="stat hi"><div class="v" id="rMonth"></div><div class="l">qo'shimcha tushum oyiga, so'm</div></div>
+          <div class="stat"><div class="v" id="rYear"></div><div class="l">yiliga, so'm</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Keyingi qadamlar</div>
+    <h2>Demodan ishga tushirishgacha</h2>
+    <div class="plan" style="margin-top:18px">
+      <div class="step"><span class="n">1-qadam · 1 kun</span><h3>Uchrashuvga tayyorlanish</h3><ul><li>Shu demoni telefonda ko'rsatish</li><li>Do'kondan eng ko'p so'raladigan 30–50 tovarni so'rash</li><li>Bir hafta "yozdi / oldi" sonini daftarga yozib borishni kelishish</li></ul></div>
+      <div class="step"><span class="n">2-qadam · 2–3 kun</span><h3>Tovar ro'yxati</h3><ul><li>Peshtaxta yoki prays-listni rasmga olish</li><li>AI rasmdan nom va narxni o'qib ro'yxat tuzadi</li><li>Har tovarga 5 donalik limit, sotuvchi faqat "Tugadi" bosadi</li></ul></div>
+      <div class="step"><span class="n">3-qadam · 1 hafta</span><h3>Telegram bot</h3><ul><li>Do'kon akkauntiga ulanadi, 24/7 javob beradi</li><li>Limitdan oshsa sotuvchiga tasdiq keladi</li><li>Yetkazish shartlari, to'plamlar, bepul yetkazish chegarasi</li></ul></div>
+      <div class="step"><span class="n">4-qadam · 2 hafta</span><h3>Bepul sinov va natija</h3><ul><li>14 kun sinov, har kuni hisobot</li><li>Eslatmalar: "o'ylab ko'raman" deganlarga ertasi kuni xabar</li><li>Natija raqamda bo'lsa, oylik to'lovga o'tish</li></ul></div>
+    </div>
+  </section>
+
+  <section class="idea">
+    <h3>Egasiga aytadigan asosiy gap</h3>
+    <p>"Sizga yana bir tizim kerak emas. Tovar kiritmaysiz, hisob yuritmaysiz. Tovar tugasa bitta tugmani bosasiz, xolos. Hozir kuniga 40 kishidan 30 tasi javob kutib boshqa do'konga ketyapti. AI ularni ushlab qoladi. Ikki hafta bepul sinab ko'ring, natija bo'lmasa to'lamaysiz."</p>
+  </section>
+</div>
+
+<script>
+const fmt = n => Math.round(n).toLocaleString('ru-RU').replace(/ /g,' ');
+const LIMIT = 5, FREE_DELIVERY = 150000, DELIVERY = 15000;
+const baseProducts = [
+  {id:'ariel', name:"Ariel poroshok 3 kg", keys:['ariel','poroshok','kukun'], price:98000, alt:'persil'},
+  {id:'persil', name:"Persil poroshok 3 kg", keys:['persil'], price:92000, alt:'ariel'},
+  {id:'head', name:"Head & Shoulders 400 ml", keys:['head','shoulders','hed','shampun','shampu'], price:54000, alt:'clear'},
+  {id:'clear', name:"Clear shampun 400 ml", keys:['clear','klir'], price:49000, alt:'head'},
+  {id:'rexona', name:"Rexona dezodorant", keys:['rexona','reksona','dezodorant','dezik'], price:38000, alt:'nivea'},
+  {id:'nivea', name:"Nivea dezodorant", keys:['nivea','niveya'], price:42000, alt:'rexona'},
+  {id:'palmolive', name:"Palmolive dush geli", keys:['palmolive','gel','dush'], price:33000, alt:null},
+  {id:'fairy', name:"Fairy 500 ml", keys:['fairy','feri','idish'], price:24000, alt:'cif'},
+  {id:'tide', name:"Tide poroshok 3 kg", keys:['tide','tayd'], price:86000, alt:'ariel'},
+  {id:'domestos', name:"Domestos 1 l", keys:['domestos','domestas','unitaz','xlor'], price:32000, alt:'cif'},
+  {id:'cif', name:"Cif krem 500 ml", keys:['cif','sif','krem'], price:29000, alt:'domestos'},
+  {id:'lenor', name:"Lenor konditsioner 1 l", keys:['lenor','konditsioner','yumshatuvchi'], price:45000, alt:null},
+  {id:'pantene', name:"Pantene shampun 400 ml", keys:['pantene','panten'], price:52000, alt:'garnier'},
+  {id:'garnier', name:"Garnier Fructis 400 ml", keys:['garnier','garner','fructis'], price:47000, alt:'pantene'},
+  {id:'colgate', name:"Colgate tish pastasi 100 ml", keys:['colgate','kolgeyt','pasta','tish'], price:18000, alt:null},
+  {id:'dove', name:"Dove sovun 90 g", keys:['dove','dav','sovun'], price:14000, alt:'safeguard'},
+  {id:'safeguard', name:"Safeguard sovun 90 g", keys:['safeguard','seyfgard'], price:11000, alt:'dove'},
+  {id:'gillette', name:"Gillette Blue II, 5 dona", keys:['gillette','jilet','gilet','ustara','britva'], price:36000, alt:null}
+];
+let products, cart, queue, reminders, stats, lastProduct;
+const $ = id => document.getElementById(id);
+const chat = $('chat');
+
+function now(){const d=new Date();return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0')}
+function say(text, who='bot'){const m=document.createElement('div');m.className='msg '+who;m.textContent=text;if(who!=='sys'){const t=document.createElement('span');t.className='t';t.textContent=now();m.appendChild(t)}chat.appendChild(m);chat.scrollTop=chat.scrollHeight}
+function botSay(text,delay=450){setTimeout(()=>say(text,'bot'),delay)}
+function setChips(list){const c=$('chips');c.innerHTML='';list.forEach(t=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.onclick=()=>userSend(t);c.appendChild(b)})}
+const P = id => products.find(p=>p.id===id);
+function cartSum(){return cart.reduce((s,i)=>s+i.qty*P(i.id).price,0)}
+
+function reset(){
+  products = baseProducts.map(p=>({...p,left:LIMIT,out:false}));
+  products.find(p=>p.id==='nivea').left=1;
+  products.find(p=>p.id==='domestos').left=2;
+  products.find(p=>p.id==='colgate').left=3;
+  products.find(p=>p.id==='tide').out=true;
+  cart=[];queue=[];lastProduct=null;
+  reminders=[{name:'Dilnoza',text:"Head & Shoulders so'ragan, olmagan. Ertaga 10:00 da: \"Kecha so'ragan shampuningiz bor, bugun buyurtma qilsangiz yetkazish bepul.\""}];
+  stats={chats:1,sold:0,rev:0};
+  chat.innerHTML='';
+  say('Yangi mijoz: Aziz, Telegram','sys');
+  say("Assalomu alaykum! Do'konimizga xush kelibsiz. Qaysi tovar kerak? Nomini yozing, narxi va bor-yo'qligini darhol aytaman.");
+  setChips(['Ariel bormi?','Head & Shoulders narxi','3 ta Rexona olaman','Nivea 2 ta','Tide bormi?','Domestos va Cif kerak','Yetkazib berasizmi?']);
+  renderAll();
+}
+
+function findProduct(text){const t=text.toLowerCase();return products.find(p=>p.keys.some(k=>t.includes(k)))}
+function findQty(text){const m=text.match(/(\d+)\s*(ta|dona)?/);if(m)return Math.max(1,parseInt(m[1]));const w={'bitta':1,'ikkita':2,'uchta':3,'to\'rtta':4,'beshta':5};for(const k in w)if(text.toLowerCase().includes(k))return w[k];return null}
+
+function userSend(text){
+  text=text.trim();if(!text)return;say(text,'me');
+  const t=text.toLowerCase();
+  if(/yetkaz|dostav|olib kel/.test(t)){botSay(`Ha, Toshkent bo'ylab shu kunning o'zida yetkazamiz.\nBuyurtma ${fmt(FREE_DELIVERY)} so'mdan oshsa yetkazish bepul, aks holda ${fmt(DELIVERY)} so'm.`);return}
+  if(/rasmiy|tasdiql|shu yetarli|boldi|bo'ldi/.test(t)){checkout();return}
+  if(/yo'q|rahmat|kerakmas/.test(t)){botSay("Mayli! Yana biror narsa kerak bo'lsa, yozing. Savatingiz saqlanib turadi.");return}
+  let p=findProduct(t); const qty=findQty(t);
+  const many=products.filter(x=>x.keys.some(k=>t.includes(k)));
+  if(many.length>1 && /kerak|olaman|olay|bering|buyurtma/.test(t)){many.forEach((x,i)=>setTimeout(()=>order(x,1),i*500));lastProduct=many[many.length-1];return}
+  if(!p && qty && lastProduct) p=lastProduct;
+  if(!p){botSay("Bu tovarni aniq topa olmadim. Sotuvchiga yubordim, 5 daqiqa ichida javob beradi. Boshqa tovar kerakmi?");return}
+  lastProduct=p;
+  const wantsBuy = qty || /olaman|olay|buyurtma|kerak|bering/.test(t);
+  if(wantsBuy) order(p, qty||1); else info(p);
+}
+
+function info(p){
+  if(p.out){offerAlt(p);return}
+  const status = p.left>0 ? "Hozir bor ✅" : "Tekshirib aytaman";
+  botSay(`${p.name}\nNarxi: ${fmt(p.price)} so'm\n${status}\n\nNechta kerak?`);
+  setChips([`1 ta ${p.keys[0]}`,`2 ta ${p.keys[0]}`,'Yetkazib berasizmi?']);
+}
+
+function offerAlt(p){
+  const a=p.alt&&P(p.alt);
+  if(a&&!a.out) {botSay(`Afsuski, ${p.name} bugun tugagan.\nO'rniga ${a.name} bor: ${fmt(a.price)} so'm. Olib qo'yaymi?`); lastProduct=a; setChips([`1 ta ${a.keys[0]}`,'Yo\'q, rahmat'])}
+  else botSay(`Afsuski, ${p.name} bugun tugagan. Kelganda sizga birinchi bo'lib xabar beraman.`);
+}
+
+function order(p,qty){
+  if(p.out){offerAlt(p);return}
+  if(qty<=p.left){
+    p.left-=qty; addCart(p.id,qty);
+    const sum=cartSum();
+    let upsell='';
+    if(sum<FREE_DELIVERY) upsell=`\n\nYana ${fmt(FREE_DELIVERY-sum)} so'mlik tovar qo'shsangiz, yetkazish bepul bo'ladi.`+(p.id!=='fairy'?` Masalan, Fairy 500 ml: ${fmt(P('fairy').price)} so'm.`:'');
+    else upsell='\n\nYetkazish bepul ✅';
+    botSay(`${qty} ta ${p.name} savatga qo'shildi.\nSavatda: ${fmt(sum)} so'm.${upsell}`);
+    setChips(sum<FREE_DELIVERY?['1 ta Fairy qo\'shing','Rasmiylashtiraman']:['Rasmiylashtiraman']);
+  } else {
+    queue.push({id:p.id,qty});
+    botSay(`${qty} ta ${p.name} uchun omborni tekshiryapman. Sotuvchi 2–3 daqiqada tasdiqlaydi, kutib turing.`);
+    say(`Sotuvchiga so'rov ketdi: ${qty} ta ${p.name}`,'sys');
+  }
+  renderAll();
+}
+
+function addCart(id,qty){const c=cart.find(i=>i.id===id);if(c)c.qty+=qty;else cart.push({id,qty})}
+
+function checkout(){
+  if(!cart.length){botSay("Savat hozircha bo'sh. Qaysi tovar kerak?");return}
+  const sum=cartSum(), del=sum>=FREE_DELIVERY?0:DELIVERY;
+  const lines=cart.map(i=>`• ${i.qty} ta ${P(i.id).name}`).join('\n');
+  botSay(`Buyurtmangiz:\n${lines}\nTovarlar: ${fmt(sum)} so'm\nYetkazish: ${del?fmt(del)+" so'm":'bepul'}\nJami: ${fmt(sum+del)} so'm\n\nManzil va telefon raqamingizni yozing. 3–4 hafta o'tgach poroshok tugashi haqida eslatib turamiz.`);
+  stats.sold++;stats.rev+=sum;
+  reminders.unshift({name:'Aziz',text:`${cart.map(i=>P(i.id).name).join(', ')} oldi. 25 kundan keyin: "Tugab qolgandir, yana yuboraylikmi?"`});
+  cart=[];setChips(['Yetkazib berasizmi?']);renderAll();
+}
+
+function renderAll(){
+  $('stChats').textContent=stats.chats;$('stSold').textContent=stats.sold;$('stRev').textContent=fmt(stats.rev);
+  $('cartTotal').textContent=fmt(cartSum());
+  const tb=$('prodBody');tb.innerHTML='';
+  products.forEach(p=>{
+    const tr=document.createElement('tr');
+    let pill = p.out?'<span class="pill bad">Tugadi</span>':p.left===0?'<span class="pill warn">Tasdiq bilan</span>':'<span class="pill ok">AI sotadi</span>';
+    const dots='<span class="dots" aria-label="'+p.left+' dona qoldi">'+Array.from({length:LIMIT},(_,i)=>`<i class="${i<p.left&&!p.out?'on':''}"></i>`).join('')+'</span>';
+    tr.innerHTML=`<td>${p.name}<br>${pill}</td><td class="r num">${fmt(p.price)}</td><td>${dots} <span class="num muted">${p.out?0:p.left}</span></td><td class="r"></td>`;
+    const b=document.createElement('button');b.className='toggle';b.type='button';b.textContent=p.out?'Keldi':'Tugadi';
+    b.onclick=()=>{p.out=!p.out;if(!p.out)p.left=LIMIT;say(`Sotuvchi: ${p.name} ${p.out?'tugadi deb belgiladi':'yana keldi'}`,'sys');renderAll()};
+    tr.lastElementChild.appendChild(b);tb.appendChild(tr);
+  });
+  const q=$('queue');q.innerHTML='';
+  if(!queue.length) q.innerHTML='<div class="empty">Hozir hech narsa kutmayapti. Limitdan oshgan buyurtma shu yerga tushadi.</div>';
+  queue.forEach((it,idx)=>{
+    const p=P(it.id);const d=document.createElement('div');d.className='qitem';
+    d.innerHTML=`<span><b>${it.qty} ta</b> ${p.name}<br><span class="note">Aziz so'rayapti · limitda ${p.left} ta qolgan</span></span>`;
+    const a=document.createElement('div');a.className='acts';
+    const ok=document.createElement('button');ok.className='toggle btn-primary';ok.type='button';ok.textContent='Bor, tasdiqlash';
+    ok.onclick=()=>{queue.splice(idx,1);p.left=Math.max(p.left,it.qty)+LIMIT;say(`Sotuvchi tasdiqladi: ${p.name}`,'sys');order(p,it.qty)};
+    const no=document.createElement('button');no.className='toggle';no.type='button';no.textContent="Yo'q";
+    no.onclick=()=>{queue.splice(idx,1);p.out=true;say(`Sotuvchi: ${p.name} yo'q`,'sys');offerAlt(p);renderAll()};
+    a.append(ok,no);d.appendChild(a);q.appendChild(d);
+  });
+  const r=$('remind');r.innerHTML='';
+  reminders.forEach(x=>{const d=document.createElement('div');d.className='ritem';d.innerHTML=`<b>${x.name}</b> · ${x.text}`;r.appendChild(d)});
+}
+
+$('composer').addEventListener('submit',e=>{e.preventDefault();const i=$('msgInput');userSend(i.value);i.value=''});
+$('resetBtn').onclick=reset;
+$('checkoutBtn').onclick=()=>{say('Rasmiylashtiraman','me');checkout()};
+$('leaveBtn').onclick=()=>{
+  const items=cart.length?cart.map(i=>P(i.id).name).join(', '):(lastProduct?lastProduct.name:"so'ragan tovari");
+  reminders.unshift({name:'Aziz',text:`${items} bilan qiziqdi, olmadi. Ertaga 10:00 da: "Kechagi tovaringiz hali bor, bugun buyurtma qilsangiz yetkazish bepul."`});
+  cart.forEach(i=>{P(i.id).left+=i.qty});cart=[];
+  say('Mijoz javob bermay chiqib ketdi. Eslatma rejalashtirildi.','sys');renderAll();
+};
+
+// Calculator
+function calc(){
+  const w=Math.max(1,+$('cWrite').value||0), b=Math.min(w,Math.max(0,+$('cBuy').value||0)), ch=+$('cCheck').value||0;
+  const conv=+$('cConv').value/100, rep=+$('cRep').value/100;
+  $('cConvV').textContent=Math.round(conv*100)+'%';$('cRepV').textContent=Math.round(rep*100)+'%';
+  const ai=Math.max(b,Math.round(w*conv)), lost=w-b;
+  $('bNow').style.width=(b/w*100)+'%';$('bNowV').textContent=b;
+  $('bAi').style.width=(ai/w*100)+'%';$('bAiV').textContent=ai;
+  $('bLost').style.width=(lost/w*100)+'%';$('bLostV').textContent=lost;
+  const extraDay=ai-b, repMonth=Math.round(ai*30*rep*0.5);
+  const month=(extraDay*30+repMonth)*ch;
+  $('rDay').textContent='+'+extraDay;$('rRep').textContent='+'+repMonth;
+  $('rMonth').textContent=fmt(month);$('rYear').textContent=fmt(month*12);
+}
+['cWrite','cBuy','cCheck','cConv','cRep'].forEach(id=>$(id).addEventListener('input',calc));
+reset();calc();
+</script>
