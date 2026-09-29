@@ -83,3 +83,27 @@ describe("plainText (markdownsiz javob)", () => {
     expect(plainText("taxi_vistar_demobot")).toBe("taxi_vistar_demobot");
   });
 });
+
+import { systemPrompt } from "../src/prompts";
+import { TOOL_DEFS } from "../src/tools";
+
+describe("systemPrompt va toollar", () => {
+  const s = { dailyLimit: 5, freeDeliveryFrom: 150000, deliveryPrice: 15000, shopName: "Test", sellerChatId: "1" };
+
+  it("lokatsiya saqlangan bo'lsa manzilni qayta so'ramaslikni aytadi", () => {
+    const p = systemPrompt(s, { name: "Aziz", phone: "+998901234567", hasLocation: true });
+    expect(p).toContain("Lokatsiyasi saqlangan");
+    expect(p).toContain("+998901234567");
+    expect(p).toContain("150 000");
+  });
+
+  it("mijoz ma'lumoti bo'lmasa bo'lim chiqmaydi", () => {
+    expect(systemPrompt(s)).not.toContain("MIJOZ HAQIDA");
+  });
+
+  it("konsultatsiya uchun product_details tooli bor", () => {
+    const names = TOOL_DEFS.map((t) => t.function.name);
+    expect(names).toContain("product_details");
+    expect(names).toContain("checkout");
+  });
+});

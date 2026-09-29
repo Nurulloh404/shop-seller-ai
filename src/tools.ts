@@ -42,6 +42,19 @@ export const TOOL_DEFS = [
   {
     type: "function",
     function: {
+      name: "product_details",
+      description:
+        "Bir yoki bir nechta tovarning to'liq tavsifi (kim uchun, qanday ishlatiladi, qancha yetadi, ehtiyot choralari). Maslahat berish yoki tovarlarni solishtirish uchun chaqir.",
+      parameters: {
+        type: "object",
+        properties: { product_ids: { type: "array", items: { type: "string" }, description: "search_products yoki list_products qaytargan id lar" } },
+        required: ["product_ids"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "add_to_cart",
       description: "Tovarni mijoz savatiga qo'shadi. Natijadagi status: added, waiting_seller yoki out.",
       parameters: {
@@ -71,11 +84,14 @@ export const TOOL_DEFS = [
     function: {
       name: "checkout",
       description:
-        "Buyurtmani rasmiylashtiradi. Faqat mijoz manzil va telefon raqamini bergandan keyin va buyurtmani tasdiqlagandan keyin chaqir.",
+        "Buyurtmani rasmiylashtiradi. Faqat mijoz manzil (yoki lokatsiya) va telefon raqamini bergandan keyin va buyurtmani tasdiqlagandan keyin chaqir.",
       parameters: {
         type: "object",
         properties: {
-          address: { type: "string", description: "Yetkazish manzili" },
+          address: {
+            type: "string",
+            description: "Yetkazish manzili. Mijoz lokatsiya yuborgan bo'lsa: 'Lokatsiya bo'yicha' va bor bo'lsa mo'ljal, podyezd, qavat, kvartira.",
+          },
           phone: { type: "string", description: "Telefon raqami" },
         },
         required: ["address", "phone"],
@@ -98,8 +114,9 @@ export const TOOL_DEFS = [
 
 type Args = Record<string, unknown>;
 
-function productView(p: db.Product) {
-  return { id: p.id, name: p.name, price: p.price, price_text: `${fmt(p.price)} so'm`, category: p.category, status: stockStatus(p) };
+function productView(p: db.Product, detailed = false) {
+  const base = { id: p.id, name: p.name, price: p.price, price_text: `${fmt(p.price)} so'm`, category: p.category, status: stockStatus(p) };
+  return detailed && p.info ? { ...base, info: p.info } : base;
 }
 
 async function cartSummary(ctx: ToolContext) {
@@ -168,7 +185,12 @@ export async function approvePending(ctx: ToolContext, pending: db.PendingRow) {
 async function checkout(ctx: ToolContext, address: string, phone: string) {
   const digits = phone.replace(/\D/g, "");
   if (digits.length < 9) return { status: "error", message: "Telefon raqami noto'g'ri. Mijozdan to'liq raqamni so'ra." };
-  if (address.trim().length < 5) return { status: "error", message: "Manzil juda qisqa. Mijozdan aniqroq manzil so'ra." };
+  const cust = await db.getCustomer(ctx.env.DB, ctx.customer.id);
+  const hasLocation = cust?.lat != null && cust?.lon != null;
+  if (address.trim().length < 5 && !hasLocation) {
+    return { status: "error", message: "Manzil juda qisqa. Mijozdan aniqroq manzil so'ra yoki '📍 Lokatsiya yuborish' tugmasini bosishini ayt." };
+  }
+  const fullAddress = hasLocation ? `${address.trim() || "Lokatsiya bo'yicha"}\n🗺 ${db.mapLink(cust!.lat!, cust!.lon!)}` : address.trim();
 
   const items = await db.getCart(ctx.env.DB, ctx.customer.id);
   if (!items.length) return { status: "error", message: "Savat bo'sh." };
@@ -176,9 +198,9 @@ async function checkout(ctx: ToolContext, address: string, phone: string) {
   const subtotal = items.reduce((s, l) => s + l.qty * l.price, 0);
   const delivery = deliveryFor(subtotal, ctx.s.freeDeliveryFrom, ctx.s.deliveryPrice);
   const firstToday = (await db.ordersTodayForCustomer(ctx.env.DB, ctx.customer.id)) === 0;
-  const orderId = await db.createOrder(ctx.env.DB, { customerId: ctx.customer.id, items, subtotal, delivery, address, phone });
+  const orderId = await db.createOrder(ctx.env.DB, { customerId: ctx.customer.id, items, subtotal, delivery, address: fullAddress, phone });
   await db.clearCart(ctx.env.DB, ctx.customer.id);
-  await db.saveContact(ctx.env.DB, ctx.customer.id, phone, address);
+  await db.saveContact(ctx.env.DB, ctx.customer.id, phone, address.trim() || undefined);
   await db.recordOrderStats(ctx.env.DB, subtotal + delivery, firstToday);
 
   // Qayta xarid eslatmalari: har kategoriya uchun bittadan
@@ -196,10 +218,13 @@ async function checkout(ctx: ToolContext, address: string, phone: string) {
     );
   }
 
-  const order = { id: orderId, subtotal, delivery, total: subtotal + delivery, address, phone, status: "new" };
+  const order = { id: orderId, subtotal, delivery, total: subtotal + delivery, address: fullAddress, phone, status: "new" };
   const who = `${customerLabel(ctx.customer)}\n${CUSTOMER_TAG(ctx.customer.id)}`;
   try {
-    await ctx.api.sendMessage(ctx.s.sellerChatId, orderText(order, items, who), { reply_markup: orderKeyboard(orderId, "new") });
+    const sent = await ctx.api.sendMessage(ctx.s.sellerChatId, orderText(order, items, who), { reply_markup: orderKeyboard(orderId, "new") });
+    if (hasLocation) {
+      await ctx.api.sendLocation(ctx.s.sellerChatId, cust!.lat!, cust!.lon!, { reply_parameters: { message_id: sent.message_id } });
+    }
   } catch (e) {
     console.error("order notify", e);
   }
@@ -227,14 +252,23 @@ export async function runTool(ctx: ToolContext, name: string, args: Args): Promi
         found: true,
         results: hits.map(({ product: p }) => {
           const alt = p.alt_product_id ? byId.get(p.alt_product_id) : undefined;
-          return { ...productView(p), alternative: p.is_out && alt && !alt.is_out ? productView(alt) : null };
+          return { ...productView(p, true), alternative: p.is_out && alt && !alt.is_out ? productView(alt, true) : null };
         }),
       };
     }
     case "list_products": {
       const cat = typeof args.category === "string" ? args.category.toLowerCase() : "";
       const products = (await db.listProducts(DB)).filter((p) => !cat || p.category.toLowerCase() === cat);
-      return { products: products.map(productView) };
+      return { products: products.map((p) => productView(p)) };
+    }
+    case "product_details": {
+      const ids = Array.isArray(args.product_ids) ? args.product_ids.map(String).slice(0, 6) : [];
+      const out = [];
+      for (const id of ids) {
+        const p = await db.getProduct(DB, id);
+        if (p && p.active) out.push(productView(p, true));
+      }
+      return out.length ? { products: out } : { found: false, instruction: "Bunday tovar topilmadi, avval search_products chaqir." };
     }
     case "add_to_cart": {
       const qty = Math.floor(Number(args.qty ?? 1));

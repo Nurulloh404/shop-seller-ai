@@ -87,7 +87,14 @@ Tayyor. Boshqa akkauntdan botga "ariel bormi?" deb yozib sinab ko'ring.
 | `/buyurtmalar` | Ochiq buyurtmalar: Qabul / Yetkazildi / Bekor |
 | Bot xabariga **Reply** | Javob mijozga yetkaziladi |
 
+Diagnostika: `/health` (sirlar qo'yilganmi), `/webhook-info` (Telegram ko'rgan oxirgi xato), `/setup-webhook` (webhook'ni brauzerdan o'rnatish). Bosqichlar va xatolar `debug_log` jadvaliga yoziladi.
+
 Avtomatik keladigan xabarlar: har yangi buyurtma, limitdan oshgan so'rovlar (10 daqiqada javob bo'lmasa qayta eslatiladi), AI javob bera olmagan savollar, mijoz yuborgan rasm yoki ovozli xabarlar, har kuni ertalab kechagi hisobot.
+
+## Konsultatsiya va lokatsiya
+
+- Har tovarda tavsif bor (`products.info`): kim uchun, qanday ishlatiladi, qancha yetadi, ehtiyot choralari. Bot shu ma'lumot asosida maslahat beradi, aniqlashtiruvchi savol beradi, tovarlarni solishtiradi va uy-ro'zg'or savollariga (dog' ketkazish va h.k.) javob beradi. Tavsifni o'zgartirish: `UPDATE products SET info = '...' WHERE id = 'ariel';`
+- Mijoz chatida doimiy tugmalar bor: "📍 Lokatsiya yuborish" va "📞 Raqamni yuborish". Lokatsiya saqlanadi, buyurtmada Google Maps havolasi bilan ko'rinadi, sotuvchiga esa xarita nuqtasi alohida yuboriladi.
 
 ## Mijoz uchun avtomatik eslatmalar
 

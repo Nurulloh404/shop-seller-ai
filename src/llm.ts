@@ -38,7 +38,7 @@ async function callOpenRouter(env: Env, messages: ChatMessage[], doFetch: FetchL
       tools: TOOL_DEFS,
       tool_choice: "auto",
       temperature: 0.3,
-      max_tokens: 600,
+      max_tokens: 900,
     }),
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });

@@ -1,4 +1,4 @@
-import { Bot, type Context, InlineKeyboard } from "grammy";
+import { Bot, type Context, InlineKeyboard, Keyboard } from "grammy";
 import type { Update } from "grammy/types";
 import * as db from "./db";
 import { type Env, settings } from "./env";
@@ -10,6 +10,15 @@ import { CUSTOMER_TAG, customerLabel, notifySeller, orderKeyboard, orderText, pa
 import { approvePending, type ToolContext } from "./tools";
 import { fmt, plainText, tkDate } from "./util";
 import { dlog } from "./debug";
+
+/** Mijoz chatining pastidagi doimiy tugmalar */
+function customerKeyboard() {
+  return new Keyboard()
+    .requestLocation("📍 Lokatsiya yuborish")
+    .requestContact("📞 Raqamni yuborish")
+    .resized()
+    .persistent();
+}
 
 const FALLBACK = "Bir daqiqa, sotuvchi hozir o'zi javob beradi 🙏";
 
@@ -249,8 +258,12 @@ function registerHandlers(bot: Bot, env: Env) {
 
   customer.command("start", async (ctx) => {
     await db.upsertCustomer(DB, { id: ctx.from.id, name: ctx.from.first_name, username: ctx.from.username });
-    const text = `Assalomu alaykum${ctx.from.first_name ? ", " + ctx.from.first_name : ""}! ${s.shopName}ga xush kelibsiz 🌿\nQaysi tovar kerak? Nomini yozing, narxi va bor-yo'qligini darhol aytaman.`;
-    await ctx.reply(text);
+    const text =
+      `Assalomu alaykum${ctx.from.first_name ? ", " + ctx.from.first_name : ""}! ${s.shopName}ga xush kelibsiz 🌿\n` +
+      `Qaysi tovar kerak? Nomini yozing, narxi va bor-yo'qligini darhol aytaman.\n` +
+      `Qaysi birini tanlashni bilmasangiz, vaziyatni yozing (masalan, "sochim yog'li" yoki "oq ko'ylakdagi dog' ketmayapti"), mos tovarni tavsiya qilaman.\n` +
+      `Yetkazish uchun pastdagi "📍 Lokatsiya yuborish" tugmasidan foydalanishingiz mumkin.`;
+    await ctx.reply(text, { reply_markup: customerKeyboard() });
     await db.addMessage(DB, ctx.from.id, "assistant", text);
   });
 
@@ -258,6 +271,19 @@ function registerHandlers(bot: Bot, env: Env) {
     await db.upsertCustomer(DB, { id: ctx.from.id, name: ctx.from.first_name, username: ctx.from.username });
     await db.saveContact(DB, ctx.from.id, ctx.message.contact.phone_number);
     await answerCustomer(ctx, `Telefon raqamim: ${ctx.message.contact.phone_number}`);
+  });
+
+  customer.on("message:location", async (ctx) => {
+    const loc = ctx.message.location;
+    const venue = ctx.message.venue;
+    await db.upsertCustomer(DB, { id: ctx.from.id, name: ctx.from.first_name, username: ctx.from.username });
+    const label = venue ? `${venue.title}${venue.address ? ", " + venue.address : ""}` : undefined;
+    await db.saveLocation(DB, ctx.from.id, loc.latitude, loc.longitude, label);
+    await dlog(DB, "location", `${ctx.from.id}: ${loc.latitude},${loc.longitude}`);
+    await answerCustomer(
+      ctx,
+      `📍 Lokatsiyamni yubordim${label ? ` (${label})` : ""}. Shu joyga yetkazib bering.`,
+    );
   });
 
   customer.on("message:text", (ctx) => answerCustomer(ctx, ctx.message.text));
@@ -286,7 +312,14 @@ function registerHandlers(bot: Bot, env: Env) {
 
     let reply: string;
     try {
-      reply = await runAgent(toolCtx(env, bot, c), systemPrompt(s, from.first_name), history, text);
+      const saved = await db.getCustomer(DB, from.id);
+      const promptCtx = {
+        name: from.first_name,
+        phone: saved?.phone,
+        address: saved?.address,
+        hasLocation: saved?.lat != null && saved?.lon != null,
+      };
+      reply = await runAgent(toolCtx(env, bot, c), systemPrompt(s, promptCtx), history, text);
     } catch (e) {
       console.error("agent", e);
       await dlog(DB, "agent-error", e);
@@ -298,7 +331,7 @@ function registerHandlers(bot: Bot, env: Env) {
       );
     }
     reply = plainText(reply);
-    await ctx.reply(reply.slice(0, 4000));
+    await ctx.reply(reply.slice(0, 4000), { reply_markup: customerKeyboard() });
     await db.addMessage(DB, from.id, "assistant", reply);
   }
 }

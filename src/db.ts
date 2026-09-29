@@ -11,6 +11,7 @@ export interface ProductRow {
   daily_limit: number;
   sold_today: number;
   active: number;
+  info: string | null;
 }
 
 export interface Product extends Omit<ProductRow, "aliases"> {
@@ -138,11 +139,32 @@ export async function upsertCustomer(
     .run();
 }
 
+export interface CustomerRow {
+  telegram_id: number;
+  name: string | null;
+  username: string | null;
+  phone: string | null;
+  address: string | null;
+  lat: number | null;
+  lon: number | null;
+}
+
 export async function getCustomer(db: D1Database, id: number) {
   return db
-    .prepare("SELECT telegram_id, name, username, phone, address FROM customers WHERE telegram_id = ?")
+    .prepare("SELECT telegram_id, name, username, phone, address, lat, lon FROM customers WHERE telegram_id = ?")
     .bind(id)
-    .first<{ telegram_id: number; name: string | null; username: string | null; phone: string | null; address: string | null }>();
+    .first<CustomerRow>();
+}
+
+export async function saveLocation(db: D1Database, id: number, lat: number, lon: number, address?: string): Promise<void> {
+  await db
+    .prepare("UPDATE customers SET lat = ?2, lon = ?3, address = COALESCE(?4, address) WHERE telegram_id = ?1")
+    .bind(id, lat, lon, address ?? null)
+    .run();
+}
+
+export function mapLink(lat: number, lon: number): string {
+  return `https://maps.google.com/?q=${lat.toFixed(6)},${lon.toFixed(6)}`;
 }
 
 export async function saveContact(db: D1Database, id: number, phone?: string, address?: string): Promise<void> {
