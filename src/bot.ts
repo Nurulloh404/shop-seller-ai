@@ -9,6 +9,7 @@ import { bestMatch, normalize } from "./search";
 import { CUSTOMER_TAG, customerLabel, notifySeller, orderKeyboard, orderText, parseCustomerTag } from "./telegram";
 import { approvePending, type ToolContext } from "./tools";
 import { fmt, tkDate } from "./util";
+import { dlog } from "./debug";
 
 const FALLBACK = "Bir daqiqa, sotuvchi hozir o'zi javob beradi 🙏";
 
@@ -71,7 +72,10 @@ function registerHandlers(bot: Bot, env: Env) {
   const DB = env.DB;
   const isSeller = (ctx: Context) => !!s.sellerChatId && String(ctx.chat?.id) === s.sellerChatId;
 
-  bot.catch((err) => console.error("bot error", err.error));
+  bot.catch(async (err) => {
+    console.error("bot error", err.error);
+    await dlog(DB, "bot-error", err.error);
+  });
 
   // Istalgan chatda: chat ID ni bilish (SELLER_CHAT_ID sozlash uchun)
   bot.command("id", (ctx) => ctx.reply(`Bu chat ID: ${ctx.chat.id}`));
@@ -271,6 +275,7 @@ function registerHandlers(bot: Bot, env: Env) {
 
   async function answerCustomer(ctx: Context, text: string) {
     const from = ctx.from!;
+    await dlog(DB, "customer", `${from.id}: ${text.slice(0, 60)}`);
     const c = { id: from.id, name: from.first_name, username: from.username };
     await db.upsertCustomer(DB, c);
     await db.markSeen(DB, from.id);
@@ -284,6 +289,7 @@ function registerHandlers(bot: Bot, env: Env) {
       reply = await runAgent(toolCtx(env, bot, c), systemPrompt(s, from.first_name), history, text);
     } catch (e) {
       console.error("agent", e);
+      await dlog(DB, "agent-error", e);
       reply = FALLBACK;
       await notifySeller(
         ctx.api,

@@ -1,6 +1,7 @@
 import * as db from "./db";
 import { type Env, settings } from "./env";
 import { apiFor } from "./bot";
+import { trimLog } from "./debug";
 import { atTashkent, fmt, minutesAgo, tkDate, tkHour } from "./util";
 
 /** Har 10 daqiqada: eslatmalar, tasdiq kutayotganlar, tashlab ketilgan savatlar */
@@ -46,6 +47,8 @@ export async function every10Minutes(env: Env, now: Date = new Date()): Promise<
     );
     await db.markCartReminded(DB, c.customer_id);
   }
+
+  await trimLog(DB);
 
   // 4. 24 soatdan eski savatlar: band qilingan limitni bo'shatamiz
   for (const row of await db.staleCarts(DB, minutesAgo(24 * 60, now))) {

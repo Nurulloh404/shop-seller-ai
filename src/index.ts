@@ -1,6 +1,7 @@
 import type { Update } from "grammy/types";
 import { handleUpdate } from "./bot";
 import { daily, every10Minutes } from "./cron";
+import { dlog } from "./debug";
 import type { Env } from "./env";
 
 export default {
@@ -73,10 +74,31 @@ export default {
       });
     }
 
+    // Telegram webhook holati (faqat o'qiydi, hech narsani o'zgartirmaydi)
+    if (request.method === "GET" && url.pathname === "/webhook-info") {
+      const token = (env.TELEGRAM_BOT_TOKEN ?? "").trim();
+      if (!token) return Response.json({ ok: false, sabab: "TELEGRAM_BOT_TOKEN qo'yilmagan" }, { status: 400 });
+      const info = (await (await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`)).json()) as {
+        result?: { url?: string; pending_update_count?: number; last_error_date?: number; last_error_message?: string };
+      };
+      const r = info.result ?? {};
+      return Response.json({
+        webhook_url: r.url ?? null,
+        kutayotgan_xabarlar: r.pending_update_count ?? 0,
+        oxirgi_xato: r.last_error_message ?? "yo'q",
+        oxirgi_xato_vaqti: r.last_error_date ? new Date(r.last_error_date * 1000).toISOString() : null,
+      });
+    }
+
     if (request.method === "POST" && url.pathname === "/webhook") {
       const expected = (env.TELEGRAM_WEBHOOK_SECRET ?? "").trim();
-      if (!expected || request.headers.get("X-Telegram-Bot-Api-Secret-Token") !== expected) {
-        console.warn("webhook 401: secret mos kelmadi yoki qo'yilmagan");
+      const got = request.headers.get("X-Telegram-Bot-Api-Secret-Token");
+      if (!expected || got !== expected) {
+        await dlog(env.DB, "webhook-401", {
+          secret_qoyilgan: !!expected,
+          sarlavha_keldi: got !== null,
+          uzunliklar: [expected.length, got?.length ?? 0],
+        });
         return new Response("unauthorized", { status: 401 });
       }
       let update: Update;
@@ -85,8 +107,15 @@ export default {
       } catch {
         return new Response("bad request", { status: 400 });
       }
+      const kind = Object.keys(update).filter((k) => k !== "update_id").join(",");
+      await dlog(env.DB, "webhook", `update ${update.update_id}: ${kind}`);
       // Telegram'ga darhol 200 qaytaramiz, AI javobini fonda tayyorlaymiz (webhook timeout bo'lmasligi uchun)
-      ctx.waitUntil(handleUpdate(env, update).catch((e) => console.error("update failed", e)));
+      ctx.waitUntil(
+        handleUpdate(env, update).catch(async (e) => {
+          console.error("update failed", e);
+          await dlog(env.DB, "update-failed", e);
+        }),
+      );
       return new Response("ok");
     }
 
