@@ -8,7 +8,7 @@ import { systemPrompt } from "./prompts";
 import { bestMatch, normalize } from "./search";
 import { CUSTOMER_TAG, customerLabel, notifySeller, orderKeyboard, orderText, parseCustomerTag } from "./telegram";
 import { approvePending, type ToolContext } from "./tools";
-import { fmt, tkDate } from "./util";
+import { fmt, plainText, tkDate } from "./util";
 import { dlog } from "./debug";
 
 const FALLBACK = "Bir daqiqa, sotuvchi hozir o'zi javob beradi 🙏";
@@ -297,6 +297,7 @@ function registerHandlers(bot: Bot, env: Env) {
         `⚠️ AI javob bera olmadi. ${customerLabel(c)} yozdi:\n"${text}"\n\nShu xabarga Reply qilib javob bering.\n${CUSTOMER_TAG(from.id)}`,
       );
     }
+    reply = plainText(reply);
     await ctx.reply(reply.slice(0, 4000));
     await db.addMessage(DB, from.id, "assistant", reply);
   }

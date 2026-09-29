@@ -65,3 +65,21 @@ describe("util", () => {
     expect(sqlUtc(atTashkent(1, 10, d))).toBe("2026-09-30 05:00:00");
   });
 });
+
+import { plainText } from "../src/util";
+
+describe("plainText (markdownsiz javob)", () => {
+  it("qalin, kursiv, sarlavha va ro'yxatni tozalaydi", () => {
+    const md = "### Narxlar\n**Ariel** 3 kg — *98 000* so'm\n- Persil: 92 000\n* Tide: 86 000\n`kod`";
+    expect(plainText(md)).toBe("Narxlar\nAriel 3 kg — 98 000 so'm\n• Persil: 92 000\n• Tide: 86 000\nkod");
+  });
+
+  it("oddiy matnga tegmaydi", () => {
+    const t = "Head & Shoulders bor, narxi 54 000 so'm. 2 × 3 = 6";
+    expect(plainText(t)).toBe(t);
+  });
+
+  it("id ichidagi pastki chiziqqa tegmaydi", () => {
+    expect(plainText("taxi_vistar_demobot")).toBe("taxi_vistar_demobot");
+  });
+});

@@ -35,3 +35,20 @@ export function tkDayStartUtc(d: Date = new Date()): string {
 export function minutesAgo(min: number, now: Date = new Date()): string {
   return sqlUtc(new Date(now.getTime() - min * 60_000));
 }
+
+/** AI javobidagi markdown belgilarini olib tashlaydi (Telegram'da oddiy matn sifatida yuboriladi) */
+export function plainText(s: string): string {
+  return s
+    .replace(/```[a-z]*\n?([\s\S]*?)```/gi, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\*\*(.+?)\*\*/gs, "$1")
+    .replace(/__(.+?)__/gs, "$1")
+    .replace(/(^|[\s(])\*(?!\s)([^*\n]+?)\*(?=[\s).,!?:;]|$)/gm, "$1$2")
+    .replace(/(^|[\s(])_(?!\s)([^_\n]+?)_(?=[\s).,!?:;]|$)/gm, "$1$2")
+    .replace(/~~(.+?)~~/g, "$1")
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "• ")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, "$1: $2")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
